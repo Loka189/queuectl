@@ -1,0 +1,22 @@
+{
+  "name": "queuectl",
+  "version": "1.0.0",
+  "description": "CLI-based background job queue system",
+  "main": "bin/queuectl.js",
+  "bin":{
+    "queuectl": "./bin/queuectl.js"
+  },
+  "scripts": {
+    "start": "node bin/queuectl.js",
+    "test": "node test-complete.js",
+    "worker": "node src/worker/worker.js",
+    "clean": "node -e \"require('./src/core/jobs').clearAllJobs(); console.log('✅ Database cleared')\""
+  },
+  "keywords": ["queue", "jobs", "background", "cli", "worker", "retry", "dlq"],
+  "author": "Lokanath Sahoo",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "commander": "^14.0.2"
+  }
+}
