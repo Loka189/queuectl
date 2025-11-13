@@ -2,6 +2,14 @@
 
 A CLI-based background job queue system with retry logic and Dead Letter Queue (DLQ).
 
+## 📺 Demo
+
+> **[Watch Demo Video](https://your-video-link-here.com)** _(Coming soon)_
+
+See queuectl in action: enqueueing jobs, retry logic, DLQ management, and multiple workers processing concurrently.
+
+---
+
 ## Features
 
 ✅ Enqueue background jobs  
@@ -9,26 +17,45 @@ A CLI-based background job queue system with retry logic and Dead Letter Queue (
 ✅ Automatic retry with exponential backoff  
 ✅ Dead Letter Queue for failed jobs  
 ✅ Persistent storage (SQLite)  
+✅ Worker activity logging  
 ✅ Configurable retry settings  
 ✅ Graceful worker shutdown  
 
 ---
 
 ## Installation
+
+### Option 1: Global Installation (Recommended)
 ```bash
-# Clone repository
+# Clone the repository
 git clone https://github.com/Loka189/queuectl
 cd queuectl
 
 # Install dependencies
 npm install
 
-# Run directly
-node bin/queuectl.js --help
-
-# Or install globally
+# Install globally
 npm install -g .
+
+# Use from anywhere
 queuectl --help
+```
+
+### Option 2: Local Usage
+```bash
+# Clone and install
+git clone https://github.com/Loka189/queuectl
+cd queuectl
+npm install
+
+# Run locally
+node bin/queuectl.js --help
+```
+
+### Verify Installation
+```bash
+queuectl --help
+queuectl status
 ```
 
 ---
@@ -36,16 +63,19 @@ queuectl --help
 ## Quick Start
 ```bash
 # 1. Start a worker
-node bin/queuectl.js worker start --count 1
+queuectl worker start --count 1
 
 # 2. Enqueue a job
-node bin/queuectl.js enqueue echo "Hello World"
+queuectl enqueue node -e "console.log('Hello World')"
 
 # 3. Check status
-node bin/queuectl.js status
+queuectl status
 
-# 4. Stop worker
-node bin/queuectl.js worker stop
+# 4. View worker logs
+queuectl logs
+
+# 5. Stop worker
+queuectl worker stop
 ```
 
 ---
@@ -58,10 +88,10 @@ node bin/queuectl.js worker stop
 queuectl enqueue echo hello
 
 # Node.js script
-queuectl enqueue node -e "console.log('Hello')"
+queuectl enqueue node -e "console.log(123)"
 
 # With custom retry limit
-queuectl enqueue --max-retries 5 echo test
+queuectl enqueue --max-retries 5 node -e "console.log('test')"
 ```
 
 ### Manage Workers
@@ -85,6 +115,15 @@ queuectl status
 queuectl list --state pending
 queuectl list --state completed
 queuectl list --state dead
+
+# View worker logs
+queuectl logs
+
+# View last 100 log lines
+queuectl logs --lines 100
+
+# Follow logs in real-time (tail -f style)
+queuectl logs --follow
 ```
 
 ### Dead Letter Queue
@@ -128,6 +167,8 @@ pending → processing → completed ✅
 - **Job Manager** (`src/core/jobs.js`) - CRUD operations
 - **Queue Engine** (`src/core/queue.js`) - Retry logic, command execution
 - **Worker Process** (`src/worker/worker.js`) - Background job executor
+- **Worker Manager** (`src/core/worker-manager.js`) - Worker lifecycle management
+- **Logger** (`src/utils/logger.js`) - File-based logging
 - **CLI Commands** (`src/commands/`) - User interface
 
 ---
@@ -136,7 +177,7 @@ pending → processing → completed ✅
 
 ### 1. Enqueue a Job
 ```bash
-queuectl enqueue sleep 5
+queuectl enqueue node -e "console.log(123)"
 ```
 - Creates a job record in SQLite
 - State: `pending`
@@ -146,6 +187,7 @@ queuectl enqueue sleep 5
 - Worker polls database every 1 second
 - Acquires lock on job (atomic operation)
 - Executes shell command
+- Logs activity to `data/worker.log`
 - Updates job state
 
 ### 3. Retry on Failure
@@ -159,7 +201,16 @@ queuectl enqueue sleep 5
 ### 4. Dead Letter Queue
 - After `max_retries` attempts, move to DLQ
 - State: `dead`
-- Can be manually retried later
+- Can be manually retried later with `queuectl dlq retry <job-id>`
+
+### 5. Logging
+- Workers log all activity to `data/worker.log`
+- View logs with `queuectl logs`
+- Logs include:
+  - Worker start/stop events
+  - Job processing status
+  - Retry attempts and delays
+  - Error messages
 
 ---
 
@@ -173,20 +224,111 @@ Default settings:
 | `backoff_base` | 2 | Exponential backoff base |
 | `lock_timeout_seconds` | 300 | Stale lock timeout (5 min) |
 
+Modify with:
+```bash
+queuectl config set <key> <value>
+```
+
+---
+
+## File Structure
+```
+queuectl/
+├── bin/
+│   └── queuectl.js              # CLI entry point
+├── src/
+│   ├── commands/                # CLI command handlers
+│   ├── core/                    # Core business logic
+│   ├── worker/                  # Worker process
+│   └── utils/                   # Utilities (logger)
+├── data/
+│   ├── queue.db                 # SQLite database
+│   ├── workers.json             # Active worker PIDs
+│   └── worker.log               # Worker activity logs
+├── test-db.js                   # Database tests
+├── test-worker.js               # Worker tests
+├── test-complete.js             # End-to-end tests
+├── validate.js                  # System validation
+└── README.md
+```
+
 ---
 
 ## Testing
+
+### Automated Validation
 ```bash
-# Run complete test
+node validate.js
+```
+
+### Complete Workflow Test
+```bash
+# Run test scenario
 node test-complete.js
 
-# Then start worker and observe
-node bin/queuectl.js worker start --count 1
+# Start worker and observe
+queuectl worker start --count 1
+
+# Check logs
+queuectl logs
 ```
 
 Expected results:
 - ✅ 3 successful jobs
 - ❌ 1 job in DLQ (after retries)
+
+### Manual Testing
+```bash
+# Clear database
+npm run clean
+
+# Enqueue test jobs
+queuectl enqueue node -e "console.log(1)"
+queuectl enqueue node -e "process.exit(1)"  # Will fail
+queuectl enqueue node -e "console.log(3)"
+
+# Start worker
+queuectl worker start --count 1
+
+# Wait 15 seconds for retries, then check
+queuectl status
+queuectl logs
+queuectl dlq list
+```
+
+---
+
+## Troubleshooting
+
+### View Worker Activity
+```bash
+queuectl logs --lines 50
+```
+
+### Workers Not Processing Jobs
+```bash
+# Check if workers are running
+queuectl worker list
+
+# Restart workers
+queuectl worker stop
+queuectl worker start --count 1
+```
+
+### Jobs Stuck in Processing
+Jobs locked by crashed workers will auto-recover after 5 minutes (configurable with `lock_timeout_seconds`).
+
+### Clear Everything
+```bash
+# Stop workers
+queuectl worker stop
+
+# Clear database
+npm run clean
+
+# Start fresh
+queuectl worker start --count 1
+```
 
 ---
 
@@ -196,11 +338,13 @@ Expected results:
 - Single-machine setup (workers access same SQLite file)
 - Commands are shell-compatible
 - Trusted job commands (no sandboxing)
+- Workers have write access to `data/` directory
 
 ### Trade-offs
 - **SQLite vs Redis**: Simpler setup, but less performant at scale
 - **Polling vs Events**: Easier to implement, but 1-second latency
-- **File-based worker tracking**: Simple, but not robust for crash recovery
+- **File-based logging**: Simple, but can grow large over time
+- **Windows popup**: Brief terminal flash on Windows when spawning workers (OS limitation)
 
 ---
 
@@ -209,8 +353,22 @@ Expected results:
 - [ ] Job priority queues
 - [ ] Scheduled/delayed jobs (`run_at` timestamp)
 - [ ] Job timeout handling
-- [ ] Capture job output logs
+- [ ] Log rotation and cleanup
+- [ ] Web dashboard for monitoring
 - [ ] Distributed workers (message queue)
+- [ ] Job dependencies (job B waits for job A)
+
+---
+
+## Known Issues
+
+### Windows Terminal Popup
+On Windows, starting workers causes a brief terminal popup due to `detached` process spawning. This is a Windows OS behavior and doesn't affect functionality.
+
+**Workaround**: Run workers manually in a dedicated terminal for development:
+```bash
+node src/worker/worker.js
+```
 
 ---
 

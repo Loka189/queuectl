@@ -93,4 +93,35 @@ worker
     const { workerListCommand } = require('../src/commands/worker');
     workerListCommand();
   });
+
+// logs
+program
+  .command('logs')
+  .description('View worker logs')
+  .option('-f, --follow', 'Follow log output (tail -f style)')
+  .option('-n, --lines <number>', 'Number of lines to show', '50')
+  .action((options) => {
+    const fs = require('fs');
+    const path = require('path');
+    const logFile = path.join(__dirname, '../data/worker.log');
+    
+    if (!fs.existsSync(logFile)) {
+      console.log('No logs found. Workers haven\'t run yet.');
+      return;
+    }
+
+    if (options.follow) {
+      console.log('Following logs (Ctrl+C to stop)...\n');
+      const tail = require('child_process').spawn('tail', ['-f', logFile]);
+      tail.stdout.on('data', data => process.stdout.write(data));
+      tail.stderr.on('data', data => process.stderr.write(data));
+    } else {
+      const content = fs.readFileSync(logFile, 'utf8');
+      const lines = content.split('\n').filter(l => l.trim());
+      const numLines = parseInt(options.lines);
+      const recentLines = lines.slice(-numLines);
+      console.log(recentLines.join('\n'));
+    }
+  });
+
 program.parse(process.argv);

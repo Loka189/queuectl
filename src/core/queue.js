@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 const { getJobById, updateJobState } = require('./jobs');
 const db = require('./database');
-
+const { log } = require('../utils/logger');
 // Get config value
 function getConfig(key) {
     const stmt = db.prepare('SELECT value FROM config WHERE key = ?');
@@ -41,17 +41,21 @@ function executeCommand(command) {
 // Process a job
 function processJob(job) {
     console.log(`[Worker] Processing job ${job.id}: ${job.command}`);
+    log(`[Worker] Processing job ${job.id}: ${job.command}`);
 
     const result = executeCommand(job.command);
 
     if (result.success) {
         console.log(`[Worker] ✅ Job ${job.id} completed successfully`);
+        log(`[Worker] ✅ Job ${job.id} completed successfully`);
         if (result.output) {
             console.log(`[Worker] Output: ${result.output}`);
+            log(`[Worker] Output: ${result.output}`);
         }
         return result;
     } else {
         console.log(`[Worker] ❌ Job ${job.id} failed: ${result.error}`);
+        log(`[Worker] ❌ Job ${job.id} failed: ${result.error}`);
         return result;
     }
 }
@@ -67,6 +71,7 @@ function handleJobSuccess(job) {
     });
 
     console.log(`[Queue] Job ${job.id} marked as completed`);
+    log(`[Queue] Job ${job.id} marked as completed`);
 }
 
 // Handle job failure and retries
@@ -75,11 +80,12 @@ function handleJobFailure(job, error) {
     const newAttempts = job.attempts + 1;
 
     console.log(`[Queue] Job ${job.id} failed (attempt ${newAttempts}/${maxRetries})`);
+    log(`[Queue] Job ${job.id} failed (attempt ${newAttempts}/${maxRetries})`);
 
     if (newAttempts >= maxRetries) {
         // Give up - move to Dead Letter Queue
         console.log(`[Queue] Job ${job.id} exhausted retries, moving to DLQ`);
-
+        log(`[Queue] Job ${job.id} exhausted retries, moving to DLQ`);
         updateJobState(job.id, 'dead', {
             attempts: newAttempts,
             error_message: error,
@@ -93,7 +99,7 @@ function handleJobFailure(job, error) {
         const retryAt = new Date(Date.now() + delaySeconds * 1000).toISOString();
 
         console.log(`[Queue] Job ${job.id} will retry in ${delaySeconds} seconds (at ${retryAt})`);
-
+        log(`[Queue] Job ${job.id} will retry in ${delaySeconds} seconds (at ${retryAt})`);
         updateJobState(job.id, 'pending', {
             attempts: newAttempts,
             error_message: error,
@@ -117,6 +123,7 @@ function retryDLQJob(jobId) {
     }
 
     console.log(`[Queue] Retrying DLQ job ${jobId}`);
+    log(`[Queue] Retrying DLQ job ${jobId}`);
 
     updateJobState(jobId, 'pending', {
         attempts: 0,
