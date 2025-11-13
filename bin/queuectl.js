@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const { Command } = require('commander');
 const { enqueueCommand } = require('../src/commands/enqueue');
 const { statusCommand } = require('../src/commands/status');

@@ -17,7 +17,7 @@ A CLI-based background job queue system with retry logic and Dead Letter Queue (
 ## Installation
 ```bash
 # Clone repository
-git clone <your-repo-url>
+git clone https://github.com/Loka189/queuectl
 cd queuectl
 
 # Install dependencies
@@ -210,7 +210,6 @@ Expected results:
 - [ ] Scheduled/delayed jobs (`run_at` timestamp)
 - [ ] Job timeout handling
 - [ ] Capture job output logs
-- [ ] Web dashboard for monitoring
 - [ ] Distributed workers (message queue)
 
 ---
