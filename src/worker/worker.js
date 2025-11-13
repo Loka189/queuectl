@@ -1,5 +1,6 @@
 const { getNextPendingJob } = require('../core/jobs');
 const { processJob, handleJobSuccess, handleJobFailure } = require('../core/queue');
+const { log } = require('../utils/logger');
 
 // Worker ID (unique identifier for this worker)
 const WORKER_ID = `worker-${process.pid}`;
@@ -11,6 +12,7 @@ let shouldStop = false;
 // Main worker loop
 async function workerLoop() {
   console.log(`[${WORKER_ID}] Started`);
+  log(`[${WORKER_ID}] Worker started`);
   
   while (!shouldStop) {
     try {
@@ -35,11 +37,13 @@ async function workerLoop() {
       
     } catch (error) {
       console.error(`[${WORKER_ID}] Error:`, error.message);
+      log(`[${WORKER_ID}] Error: ${error.message}`);
       await sleep(1000); // Wait before retrying
     }
   }
   
   console.log(`[${WORKER_ID}] Stopped gracefully`);
+  log(`[${WORKER_ID}] Worker stopped gracefully`);
   process.exit(0);
 }
 
@@ -51,11 +55,13 @@ function sleep(ms) {
 // Handle termination signals for graceful shutdown
 process.on('SIGTERM', () => {
   console.log(`[${WORKER_ID}] Received SIGTERM, finishing current job...`);
+  log(`[${WORKER_ID}] Received SIGTERM, finishing current job...`);
   shouldStop = true;
 });
 
 process.on('SIGINT', () => {
   console.log(`[${WORKER_ID}] Received SIGINT, finishing current job...`);
+  log(`[${WORKER_ID}] Received SIGINT, finishing current job...`);
   shouldStop = true;
 });
 
