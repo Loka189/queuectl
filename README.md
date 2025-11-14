@@ -4,7 +4,7 @@ A CLI-based background job queue system with retry logic and Dead Letter Queue (
 
 ## 📺 Demo
 
-> **[Watch Demo Video](https://your-video-link-here.com)** _(Coming soon)_
+> **[Watch Demo Video](https://drive.google.com/file/d/1CFS51OR1dWT3aTz5cnv1uekdjBRPR0zI/view?usp=sharing)** _(Watch here)_
 
 See queuectl in action: enqueueing jobs, retry logic, DLQ management, and multiple workers processing concurrently.
 
@@ -66,7 +66,7 @@ queuectl status
 queuectl worker start --count 1
 
 # 2. Enqueue a job
-queuectl enqueue node -e "console.log('Hello World')"
+queuectl enqueue node -e "console.log('HelloWorld')"
 
 # 3. Check status
 queuectl status
@@ -360,10 +360,6 @@ queuectl worker start --count 1
 
 ---
 
-## Known Issues
-
-### Windows Terminal Popup
-On Windows, starting workers causes a brief terminal popup due to `detached` process spawning. This is a Windows OS behavior and doesn't affect functionality.
 
 **Workaround**: Run workers manually in a dedicated terminal for development:
 ```bash
